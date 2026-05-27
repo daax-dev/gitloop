@@ -1,0 +1,13 @@
+dist/
+coverage/
+node_modules/
+pnpm-lock.yaml
+.logs/
+backlog/
+
+# Operator/template-authored docs — owned outside this build, not reformatted here.
+.claude/
+.github/
+AGENTS.md
+CLAUDE.md
+OBJECTIVE.md

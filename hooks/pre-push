@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# gitloop pre-push hook (TASK-008, arch-002)
+#
+# git has no client-side post-push hook; pre-push is the only push-time client
+# hook. This thin stub contains NO pipeline logic: it reads the pushed refs from
+# stdin, extracts pipeline tag names, and notifies the tag-notifier. The notify
+# is best-effort with a short timeout so a slow/absent notifier never blocks the
+# push (fire-and-forget). git passes the remote name as $1.
+set -euo pipefail
+
+remote_name="${1:-}"
+url="${GITLOOP_NOTIFIER_URL:-http://127.0.0.1:7777}"
+
+tags=()
+while read -r local_ref local_sha _remote_ref _remote_sha; do
+  case "${local_ref}" in
+    refs/tags/*) ;;
+    *) continue ;;
+  esac
+  # Skip tag deletions: an all-zero local sha (any hash length) is not an advance.
+  case "${local_sha}" in
+    *[!0]*) ;; # contains a non-zero digit → a real object
+    *) continue ;;
+  esac
+  tag="${local_ref#refs/tags/}"
+  # Only forward safe tag names; anything outside the pipeline charset
+  # (letters, digits, / _ . -) is dropped to prevent JSON injection.
+  case "${tag}" in
+    *[!a-zA-Z0-9/_.-]*) continue ;;
+  esac
+  tags+=("${tag}")
+done
+
+if [ "${#tags[@]}" -gt 0 ]; then
+  json_items=$(printf '"%s",' "${tags[@]}")
+  payload="{\"tags\":[${json_items%,}],\"remote\":\"${remote_name}\"}"
+  # Bounded best-effort POST; never fail the push on notifier problems.
+  curl -fsS -m 2 -X POST -H 'content-type: application/json' \
+    -d "${payload}" "${url%/}/events" >/dev/null 2>&1 || true
+fi
+
+exit 0

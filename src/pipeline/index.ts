@@ -1,2 +1,3 @@
-// gitloop pipeline: deterministic legal-transition domain. Populated in TASK-005.
-export {};
+// gitloop pipeline: deterministic legal-transition domain (TASK-005) + worker claim (TASK-006).
+export * from './state.js';
+export * from './claim.js';

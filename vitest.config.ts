@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
     environment: 'node',
+    // Integration tests spawn many real git subprocesses; under parallel load
+    // (and coverage instrumentation) the default 5s is too tight.
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

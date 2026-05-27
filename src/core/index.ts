@@ -1,2 +1,4 @@
-// gitloop core: git primitives and the tag schema. Populated in TASK-002/003/004.
-export {};
+// gitloop core: git primitives, tag schema, pipeline config (TASK-002/003/004).
+export * from './config.js';
+export * from './tags.js';
+export * from './git.js';

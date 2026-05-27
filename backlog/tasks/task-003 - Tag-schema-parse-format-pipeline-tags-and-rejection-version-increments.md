@@ -1,9 +1,10 @@
 ---
 id: TASK-003
 title: 'Tag schema: parse/format pipeline tags and rejection version increments'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:31'
+updated_date: '2026-05-27 19:09'
 labels:
   - core
 dependencies:
@@ -27,3 +28,9 @@ Per arch: tag presence is authoritative; given the tag set the next legal action
 - [ ] #4 Rejects malformed tags with clear errors; step names validated against the config
 - [ ] #5 Pure module in src/core; unit-tested with a table of valid/invalid cases
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Tag grammar parse/format per arch-006; safe-integer version bounds (Codex caught IEEE-754 precision bug). Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

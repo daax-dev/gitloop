@@ -3,9 +3,10 @@ id: TASK-005
 title: >-
   Pipeline domain: derive current step and next legal action; rejection
   loop-back
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:31'
+updated_date: '2026-05-27 19:09'
 labels:
   - pipeline
 dependencies:
@@ -29,3 +30,9 @@ The deterministic core. Given the set of tags present (from TASK-004) and the pi
 - [ ] #4 Idempotency: re-deriving after an already-applied transition yields no-op, not a double-action
 - [ ] #5 Pure module in src/pipeline; table-driven tests cover happy path, loop-back, terminal (merged), and ambiguous/blocked states
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Deterministic domain: max-version derivation, advance/reject actions, loop-back per arch-006c. Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

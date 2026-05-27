@@ -3,9 +3,10 @@ id: TASK-002
 title: >-
   Pipeline config schema and loader (config-driven steps + per-step artifact
   gates)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:31'
+updated_date: '2026-05-27 19:09'
 labels:
   - core
 dependencies: []
@@ -28,3 +29,9 @@ Steps (default): in-progress, code-complete, test-complete, review-complete, mer
 - [ ] #4 Default config reproduces the six OBJECTIVE steps and the /TASK-N entry point
 - [ ] #5 Pure module in src/core, no adapter imports; unit-tested incl. invalid-config cases
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Config-driven pipeline schema + loader; per-step {taskId}-templated artifact gate; navigation helpers. Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

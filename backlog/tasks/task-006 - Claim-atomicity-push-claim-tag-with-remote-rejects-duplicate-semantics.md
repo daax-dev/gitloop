@@ -1,9 +1,10 @@
 ---
 id: TASK-006
 title: 'Claim atomicity: push-claim-tag with remote-rejects-duplicate semantics'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:32'
+updated_date: '2026-05-27 19:30'
 labels:
   - pipeline
 dependencies:
@@ -26,3 +27,9 @@ Per arch-005: a worker claims a step by pushing a claim tag to the shared remote
 - [ ] #4 Integration test spawns two concurrent processes racing the same claim; exactly one wins
 - [ ] #5 No lockfile or state outside git introduced
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Worker claim: annotated claim/<step>/TASK-N tag, anonymous ref CAS via --porcelain push status, identity in tag message, idempotent owner re-claim, concurrency-tested. Codex caught locale-fragile parsing, identity spoofing, multiline-id desync — fixed. Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

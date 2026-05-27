@@ -58,17 +58,30 @@ export const execGit: GitExec = (args, { cwd }) =>
     });
   });
 
+/** Porcelain push status for a single ref (from `git push --porcelain` flags). */
+export type PushStatus =
+  | 'new' // '*' — ref newly created on the remote (this push won)
+  | 'up-to-date' // '=' — remote already had this exact ref (idempotent re-push)
+  | 'rejected'; // '!' — remote refused (ref already exists with other content)
+
 /** Outcome of pushing a single tag to a remote. */
 export interface PushResult {
   readonly tag: string;
-  /** True when the tag was newly published to the remote. */
+  readonly status: PushStatus;
+  /** True when the push left the remote ref in place (new or up-to-date). */
   readonly pushed: boolean;
-  /** True when the push was rejected because the tag already exists on the remote. */
+  /**
+   * True when the push was rejected (porcelain `!`). For a no-force tag push the
+   * dominant cause is "tag already exists on the remote" (the claim CAS, arch-005);
+   * a `!` can also mean a hook/remote rejection — callers needing the precise
+   * cause should inspect `status` and `raw`.
+   */
   readonly alreadyExists: boolean;
   readonly raw: GitResult;
 }
 
-const ALREADY_EXISTS_RE = /already exists|\[rejected\]/i;
+// A `git push --porcelain` ref line: "<flag>\t<src>:<dst>\t<summary>".
+const PORCELAIN_REF_RE = /^([ +\-*!=])\t/;
 
 /** Typed git operations against a single repository working directory. */
 export class Git {
@@ -125,18 +138,44 @@ export class Git {
   /**
    * Push a single tag to a remote. The remote ref update is atomic and rejects a
    * tag that already exists (no force), which is the claim primitive (arch-005):
-   * `alreadyExists` true means another worker won the race.
+   * a 'rejected' status means another worker won the race. Uses `--porcelain` so
+   * the new/up-to-date/rejected distinction comes from machine-stable status
+   * flags rather than locale-dependent human text.
    */
   async pushTag(tag: string, remote: string): Promise<PushResult> {
-    const raw = await this.runRaw(['push', remote, `refs/tags/${tag}`]);
-    if (raw.code === 0) {
-      return { tag, pushed: true, alreadyExists: false, raw };
+    const args = ['push', '--porcelain', remote, `refs/tags/${tag}:refs/tags/${tag}`];
+    const raw = await this.runRaw(args);
+    const refLine = raw.stdout.split('\n').find((line) => PORCELAIN_REF_RE.test(line));
+    const flag = refLine ? refLine[0] : undefined;
+    let status: PushStatus;
+    if (flag === '*') {
+      status = 'new';
+    } else if (flag === '=') {
+      status = 'up-to-date';
+    } else if (flag === '!') {
+      status = 'rejected';
+    } else {
+      // No recognizable ref status line — a genuine failure (e.g. bad remote).
+      throw new GitError(args, raw);
     }
-    const alreadyExists = ALREADY_EXISTS_RE.test(raw.stderr);
-    if (alreadyExists) {
-      return { tag, pushed: false, alreadyExists: true, raw };
-    }
-    throw new GitError(['push', remote, `refs/tags/${tag}`], raw);
+    return {
+      tag,
+      status,
+      pushed: status !== 'rejected',
+      alreadyExists: status === 'rejected',
+      raw,
+    };
+  }
+
+  /**
+   * Force-update a local tag to match the remote's. The leading `+` in the
+   * refspec overrides git's refusal to move a tag, so any existing local tag of
+   * this name is clobbered. Scoped to `claim/*` refs at the call site (arch-007),
+   * where the local tag is a stale losing claim that should be replaced by the
+   * winner's, so the clobber is intended.
+   */
+  async fetchTag(remote: string, tag: string): Promise<void> {
+    await this.run(['fetch', remote, `+refs/tags/${tag}:refs/tags/${tag}`]);
   }
 
   /** Whether `path` exists in the tree at `ref` (arch-006d artifact gate). */

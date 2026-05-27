@@ -1,9 +1,10 @@
 ---
 id: TASK-012
 title: 'End-to-end DoD harness: two workers drive /TASK-N to merged with one rejection'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:32'
+updated_date: '2026-05-27 20:16'
 labels:
   - integration
   - dod
@@ -28,3 +29,9 @@ The project-level Definition of Done (OBJECTIVE lines 75-80). An automated harne
 - [ ] #4 All pipeline state is reconstructable from git tags alone; nothing persisted outside git
 - [ ] #5 Runs under 'pnpm test' (Vitest) as a repeatable integration test
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+E2E DoD harness: two real MCP server processes (stdio) drive /TASK-1→merged with a rejection loop-back; atomic claim (one winner/step); state reconstructed from a fresh clone (no state outside git). Deterministic. Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

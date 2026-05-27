@@ -18,6 +18,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "start:mcp": "tsx bin/mcp.ts",
+    "start:notifier": "tsx bin/notifier.ts",
     "install:hook": "tsx bin/install-hook.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "prepare": "husky"

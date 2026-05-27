@@ -1,9 +1,10 @@
 ---
 id: TASK-010
 title: 'MCP tool: claim_task (atomic, idempotent)'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-05-27 18:32'
+updated_date: '2026-05-27 20:01'
 labels:
   - adapter
   - mcp
@@ -26,3 +27,9 @@ Expose claim_task on the MCP server. Uses the claim-atomicity primitive (TASK-00
 - [ ] #3 Idempotent: owner re-claiming its own step succeeds as a no-op
 - [ ] #4 Tested incl. the concurrent-claim path
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claim_task tool over claimStep CAS; exclusive-claim tested. Validation: producer Opus 4.7, validator Codex GPT-5 (codex-cli 0.129.0) — APPROVE.
+<!-- SECTION:NOTES:END -->

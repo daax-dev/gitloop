@@ -178,6 +178,14 @@ export class Git {
     await this.run(['fetch', remote, `+refs/tags/${tag}:refs/tags/${tag}`]);
   }
 
+  /**
+   * Fetch tags from a remote so local state reflects other workers. Pipeline
+   * tags are append-only and immutable, so this never needs to clobber.
+   */
+  async fetchTags(remote: string): Promise<void> {
+    await this.run(['fetch', remote, '--tags', '--quiet']);
+  }
+
   /** Whether `path` exists in the tree at `ref` (arch-006d artifact gate). */
   async pathExistsAt(ref: string, path: string): Promise<boolean> {
     const result = await this.runRaw(['cat-file', '-e', `${ref}:${path}`]);

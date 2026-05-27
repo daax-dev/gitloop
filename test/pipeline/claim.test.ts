@@ -44,8 +44,8 @@ describe('workerId / formatClaimTag', () => {
     expect(workerId({})).toContain('@');
   });
 
-  it('namespaces the claim tag under claim/', () => {
-    expect(formatClaimTag('in-progress', 'TASK-1', 1)).toBe('claim/in-progress/TASK-1');
+  it('namespaces the claim tag under claim/ (version always explicit)', () => {
+    expect(formatClaimTag('in-progress', 'TASK-1', 1)).toBe('claim/in-progress/TASK-1/v1');
     expect(formatClaimTag('in-progress', 'TASK-1', 2)).toBe('claim/in-progress/TASK-1/v2');
   });
 
@@ -65,7 +65,11 @@ describe('claimStep — outcomes (arch-005/007)', () => {
     const base = { remote: 'origin', taskId: 'TASK-1', step: 'in-progress', version: 1 };
 
     const won = await claimStep(a, { ...base, workerId: 'alice' });
-    expect(won).toMatchObject({ outcome: 'won', owner: 'alice', tag: 'claim/in-progress/TASK-1' });
+    expect(won).toMatchObject({
+      outcome: 'won',
+      owner: 'alice',
+      tag: 'claim/in-progress/TASK-1/v1',
+    });
 
     const owned = await claimStep(aSameId, { ...base, workerId: 'alice' });
     expect(owned).toMatchObject({ outcome: 'already-owned', owner: 'alice' });
@@ -87,18 +91,17 @@ describe('claimStep — outcomes (arch-005/007)', () => {
     ).rejects.toThrow(/invalid worker id/);
   });
 
-  it('refuses to push a local claim tag held by a different worker', async () => {
+  it('reports lost (does not push) when a local claim is held by another worker', async () => {
     const g = await initRepo(join(root, 'conflict'), bare);
-    await g.createTag('claim/in-progress/TASK-7', { message: 'alice' });
-    await expect(
-      claimStep(g, {
-        remote: 'origin',
-        taskId: 'TASK-7',
-        step: 'in-progress',
-        version: 1,
-        workerId: 'bob',
-      }),
-    ).rejects.toThrow(/held by alice/);
+    await g.createTag('claim/in-progress/TASK-7/v1', { message: 'alice' });
+    const res = await claimStep(g, {
+      remote: 'origin',
+      taskId: 'TASK-7',
+      step: 'in-progress',
+      version: 1,
+      workerId: 'bob',
+    });
+    expect(res).toMatchObject({ outcome: 'lost', owner: 'alice' });
   });
 
   it('concurrent race for one step: exactly one winner', async () => {

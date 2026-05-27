@@ -44,11 +44,11 @@ describe('Git read operations', () => {
     const g = await initRepo(dir);
     await commitFile(dir, g, 'a.txt', 'hello');
     await g.createTag('TASK-1');
-    await g.createTag('in-progress/TASK-1');
+    await g.createTag('in-progress/TASK-1/v1');
 
-    expect((await g.listTags()).sort()).toEqual(['TASK-1', 'in-progress/TASK-1']);
+    expect((await g.listTags()).sort()).toEqual(['TASK-1', 'in-progress/TASK-1/v1']);
     expect(await g.tagExists('TASK-1')).toBe(true);
-    expect(await g.tagExists('nope/TASK-1')).toBe(false);
+    expect(await g.tagExists('nope/TASK-1/v1')).toBe(false);
 
     expect(await g.pathExistsAt('TASK-1', 'a.txt')).toBe(true);
     expect(await g.pathExistsAt('TASK-1', 'missing.md')).toBe(false);
@@ -58,8 +58,8 @@ describe('Git read operations', () => {
     const dir = join(root, 'annotated');
     const g = await initRepo(dir);
     await commitFile(dir, g, 'a.txt', 'x');
-    await g.createTag('claim/in-progress/TASK-1', { message: 'worker=alice' });
-    expect(await g.readTagMessage('claim/in-progress/TASK-1')).toBe('worker=alice');
+    await g.createTag('claim/in-progress/TASK-1/v1', { message: 'worker=alice' });
+    expect(await g.readTagMessage('claim/in-progress/TASK-1/v1')).toBe('worker=alice');
   });
 
   it('throws GitError on a failing command', async () => {
@@ -79,13 +79,13 @@ describe('pushTag — atomic CAS semantics (arch-005)', () => {
     await commitFile(dirB, b, 'b.txt', 'B'); // different commit than A
 
     // Both create the same claim tag at their own (different) commits.
-    await a.createTag('claim/in-progress/TASK-1');
-    await b.createTag('claim/in-progress/TASK-1');
+    await a.createTag('claim/in-progress/TASK-1/v1');
+    await b.createTag('claim/in-progress/TASK-1/v1');
 
-    const first = await a.pushTag('claim/in-progress/TASK-1', 'origin');
+    const first = await a.pushTag('claim/in-progress/TASK-1/v1', 'origin');
     expect(first).toMatchObject({ pushed: true, alreadyExists: false });
 
-    const second = await b.pushTag('claim/in-progress/TASK-1', 'origin');
+    const second = await b.pushTag('claim/in-progress/TASK-1/v1', 'origin');
     expect(second).toMatchObject({ pushed: false, alreadyExists: true });
   });
 

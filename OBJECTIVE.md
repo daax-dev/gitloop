@@ -40,10 +40,14 @@ The issue's reference design used a Python Flask notifier and Python MCP tools.
 This project reimplements that design in pure TypeScript, with one unavoidable
 exception: the git hook must be an executable script git can invoke.
 
-1. **post-push hook** — `.git/hooks/post-push`. Thin shell script git invokes after a
-   push; fires the event by handing the pushed-tag payload to the Node notifier
-   (HTTP POST or local exec). Shell is used only because git requires an executable
-   hook; it contains no pipeline logic.
+1. **pre-push hook** — `.git/hooks/pre-push`. Thin shell script git invokes during a
+   push. (git has no client-side *post-push* hook — `pre-push` is the only push-time
+   client hook; the original PRD's `post-push` is not a real git hook. See
+   `.logs/decisions/architecture.jsonl` arch-002.) It reads the pushed refs from
+   stdin, extracts pipeline tag names, and fires a best-effort HTTP POST to the Node
+   notifier with a short timeout so a slow/absent notifier never blocks the push.
+   Shell is used only because git requires an executable hook; it contains no
+   pipeline logic. Installed via `installPrePushHook` (TASK-008).
 2. **tag-notifier** — TypeScript/Node service (local, default port `7777`). Receives
    tag-push events, maintains the in-memory event queue, and derives pipeline state
    from git tags.

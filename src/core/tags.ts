@@ -1,14 +1,15 @@
-// Tag schema (TASK-003, arch-006).
+// Tag schema (TASK-003, arch-006 + arch-008).
 //
 // Pipeline state is encoded entirely in git tag names. The grammar:
 //
 //   entry tag   TASK-<n>                     (registration; the only no-slash tag)
-//   step tag    <step>/TASK-<n>              (version 1, implicit)
-//   step tag    <step>/TASK-<n>/v<k>         (version k >= 2, after loop-back)
+//   step tag    <step>/TASK-<n>/v<k>         (k >= 1; version always explicit)
 //
-// `<step>` is a name from the pipeline config (TASK-002). Version 1 is implicit;
-// versions >= 2 are explicit `/vK`. Tag presence is authoritative — given the set
-// of tags, the next legal action is derivable from these parsed forms alone.
+// `<step>` is a name from the pipeline config (TASK-002). Versions are ALWAYS
+// explicit, including v1 (arch-008): an implicit-v1 `<step>/TASK-N` would be a
+// git directory/file conflict with the loop-back `<step>/TASK-N/v2`. Keeping
+// `<step>/TASK-N` always a directory avoids that. Tag presence is authoritative —
+// given the set of tags, the next legal action is derivable from these forms alone.
 
 import type { PipelineConfig } from './config.js';
 import { stepIndex } from './config.js';
@@ -27,8 +28,8 @@ export type ParsedTag =
 const TASK_ID_RE = /^TASK-(?:[1-9][0-9]*)$/;
 // Step name segment (mirrors config's STEP_NAME_RE): lowercase kebab.
 const STEP_NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// Version suffix: `v` then an integer >= 2, no leading zeros (v1 is implicit).
-const VERSION_RE = /^v(?:[2-9]|[1-9][0-9]+)$/;
+// Version suffix: `v` then an integer >= 1, no leading zeros (always explicit).
+const VERSION_RE = /^v(?:[1-9][0-9]*)$/;
 
 /** Whether a string is a canonical task id (`TASK-<n>`). */
 export function isTaskId(value: string): boolean {
@@ -49,20 +50,14 @@ export function parseTag(tag: string, config?: PipelineConfig): ParsedTag | null
     return TASK_ID_RE.test(taskId) ? { kind: 'entry', taskId } : null;
   }
 
-  if (segments.length === 2 || segments.length === 3) {
+  if (segments.length === 3) {
     const step = segments[0] as string;
     const taskId = segments[1] as string;
-    if (!STEP_NAME_RE.test(step) || !TASK_ID_RE.test(taskId)) {
+    const versionPart = segments[2] as string;
+    if (!STEP_NAME_RE.test(step) || !TASK_ID_RE.test(taskId) || !VERSION_RE.test(versionPart)) {
       return null;
     }
     if (config && stepIndex(config, step) < 0) {
-      return null;
-    }
-    if (segments.length === 2) {
-      return { kind: 'step', step, taskId, version: 1 };
-    }
-    const versionPart = segments[2] as string;
-    if (!VERSION_RE.test(versionPart)) {
       return null;
     }
     const version = Number(versionPart.slice(1));
@@ -87,7 +82,7 @@ export function formatEntryTag(taskId: string): string {
 }
 
 /**
- * Format a step tag. Version 1 omits the suffix; versions >= 2 append `/vK`.
+ * Format a step tag. The version is always explicit (arch-008): `<step>/TASK-N/vK`.
  * Throws on an invalid step name, task id, or version (< 1).
  */
 export function formatStepTag(step: string, taskId: string, version: number): string {
@@ -100,7 +95,7 @@ export function formatStepTag(step: string, taskId: string, version: number): st
   if (!Number.isSafeInteger(version) || version < 1) {
     throw new Error(`invalid version: ${version} (must be a safe integer >= 1)`);
   }
-  return version === 1 ? `${step}/${taskId}` : `${step}/${taskId}/v${version}`;
+  return `${step}/${taskId}/v${version}`;
 }
 
 /** The next loop-back version (arch-006c). */

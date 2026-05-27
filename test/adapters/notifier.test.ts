@@ -39,17 +39,17 @@ describe('tag-notifier', () => {
         body: JSON.stringify({ tags, remote: 'origin' }),
       });
 
-    const r1 = await post(['in-progress/TASK-1']);
+    const r1 = await post(['in-progress/TASK-1/v1']);
     expect(r1.status).toBe(202);
     expect(await r1.json()).toEqual({ id: 1 });
 
-    const r2 = await post(['code-complete/TASK-1']);
+    const r2 = await post(['code-complete/TASK-1/v1']);
     expect(await r2.json()).toEqual({ id: 2 });
 
     expect(notifier.events).toHaveLength(2);
     expect(notifier.events[0]).toMatchObject({
       id: 1,
-      tags: ['in-progress/TASK-1'],
+      tags: ['in-progress/TASK-1/v1'],
       remote: 'origin',
     });
     expect(typeof notifier.events[0]?.receivedAt).toBe('string');
@@ -82,7 +82,7 @@ describe('tag-notifier', () => {
     const res = await fetch(`${base}/events`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tags: ['merged/TASK-1'] }),
+      body: JSON.stringify({ tags: ['merged/TASK-1/v1'] }),
     });
     expect(res.status).toBe(202);
     expect(notifier.events[0]).not.toHaveProperty('remote');
@@ -146,7 +146,7 @@ describe('tag-notifier — error handling', () => {
 describe('tag-notifier /state', () => {
   it('derives pipeline state from git tags', async () => {
     await notifier.stop();
-    await startWith(['TASK-1', 'in-progress/TASK-1', 'merged/TASK-2']);
+    await startWith(['TASK-1', 'in-progress/TASK-1/v1', 'merged/TASK-2/v1']);
     const res = await fetch(`${base}/state`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {

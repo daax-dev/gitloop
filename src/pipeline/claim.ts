@@ -65,13 +65,16 @@ export async function claimStep(git: Git, req: ClaimRequest): Promise<ClaimResul
   const tag = formatClaimTag(req.step, req.taskId, req.version);
 
   // Stage the claim locally with our identity. If a local claim tag already
-  // exists, it must be ours — otherwise pushing it would publish a *different*
-  // worker's identity while reporting it as ours. Surface that conflict instead.
+  // exists owned by another worker (typically fetched from the remote winner),
+  // we have lost — report it without pushing, so we never publish another
+  // worker's tag while reporting it as ours.
   if (await git.tagExists(tag)) {
     const localOwner = await git.readTagMessage(tag);
     if (localOwner !== req.workerId) {
-      throw new Error(`local claim ${tag} is held by ${localOwner}, not ${req.workerId}`);
+      return { tag, outcome: 'lost', owner: localOwner };
     }
+    // It is ours: fall through to push (up-to-date if already on the remote,
+    // new if a prior attempt created it locally but never pushed).
   } else {
     await git.createTag(tag, { message: req.workerId });
   }

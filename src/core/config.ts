@@ -34,7 +34,7 @@ export class PipelineConfigError extends Error {
   }
 }
 
-/** The six OBJECTIVE steps as the shipped default (entry `TASK-N` is implicit). */
+/** The five OBJECTIVE steps as the shipped default (entry `TASK-N` is implicit). */
 export const DEFAULT_PIPELINE: PipelineConfig = {
   steps: [
     { name: 'in-progress' },

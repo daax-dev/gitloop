@@ -15,7 +15,7 @@ import {
 } from '../../src/core/config.js';
 
 describe('loadPipelineConfig', () => {
-  it('returns the default pipeline (six OBJECTIVE steps) with no argument', () => {
+  it('returns the default pipeline (five OBJECTIVE steps) with no argument', () => {
     expect(stepNames(loadPipelineConfig())).toEqual([
       'in-progress',
       'code-complete',

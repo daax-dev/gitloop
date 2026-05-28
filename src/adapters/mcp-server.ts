@@ -7,7 +7,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { DEFAULT_PIPELINE } from '../core/config.js';
+import { loadPipelineConfigFromEnv } from '../core/config-file.js';
 import { Git } from '../core/git.js';
 import { workerId } from '../pipeline/claim.js';
 import { type McpDeps, advanceTask, claimTask, getPendingTasks } from './mcp-tools.js';
@@ -60,7 +60,7 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): McpDeps {
   return {
     git: new Git(repoPath),
     remote: env.GITLOOP_REMOTE ?? 'origin',
-    config: DEFAULT_PIPELINE,
+    config: loadPipelineConfigFromEnv(env, repoPath),
     workerId: workerId(env),
   };
 }

@@ -4,10 +4,11 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
     environment: 'node',
-    // Integration tests spawn many real git subprocesses; under parallel load
-    // (and coverage instrumentation) the default 5s is too tight.
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    // Integration/e2e tests spawn many real git subprocesses and MCP worker
+    // processes; under parallel load (and coverage instrumentation) they can be
+    // slow, so allow generous headroom to avoid load-induced timeout flakiness.
+    testTimeout: 60000,
+    hookTimeout: 60000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

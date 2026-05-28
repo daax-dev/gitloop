@@ -22,11 +22,19 @@ export interface NotifierEvent {
 
 export type LogFn = (record: Record<string, unknown>) => void;
 
-/** A client error (bad request body, too large, malformed JSON) → HTTP 400. */
+/** A client error (bad request body, malformed JSON) → HTTP 400. */
 export class BadRequestError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'BadRequestError';
+  }
+}
+
+/** Request body exceeded the limit → HTTP 413, connection closed. */
+export class PayloadTooLargeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PayloadTooLargeError';
   }
 }
 
@@ -80,12 +88,16 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   let size = 0;
-  for await (const chunk of req) {
+  // destroyOnReturn: false — throwing out of the loop on overflow must NOT
+  // auto-destroy the stream, or the socket would tear down before the 413
+  // response can flush. The handler destroys the request after res 'finish'.
+  for await (const chunk of req.iterator({ destroyOnReturn: false })) {
     const buf = chunk as Buffer;
     size += buf.length;
     if (size > MAX_BODY_BYTES) {
-      req.destroy(); // stop receiving the rest of the upload
-      throw new BadRequestError('request body too large');
+      // Stop accumulating (memory stays bounded). The handler responds 413 with
+      // Connection: close so the unread remainder can't corrupt keep-alive.
+      throw new PayloadTooLargeError('request body too large');
     }
     chunks.push(buf);
   }
@@ -183,10 +195,21 @@ export function createNotifier(opts: NotifierOptions = {}): Notifier {
     handle(req, res)
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
-        // Typed client errors (and malformed JSON) are 400; everything else 500.
-        const clientError = err instanceof BadRequestError || err instanceof SyntaxError;
         if (!res.headersSent) {
-          sendJson(res, clientError ? 400 : 500, { error: message });
+          if (err instanceof PayloadTooLargeError) {
+            // Close the connection: the request body was left unread, so the
+            // socket cannot be safely reused for keep-alive. Destroy the request
+            // only after the 413 has flushed.
+            res.writeHead(413, { 'content-type': 'application/json', connection: 'close' });
+            res.once('finish', () => {
+              req.destroy();
+            });
+            res.end(JSON.stringify({ error: message }));
+          } else {
+            // Typed client errors (and malformed JSON) are 400; else 500.
+            const clientError = err instanceof BadRequestError || err instanceof SyntaxError;
+            sendJson(res, clientError ? 400 : 500, { error: message });
+          }
         }
         log({ level: 'error', msg: 'request failed', error: message });
       })

@@ -17,3 +17,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local test sandbox runtime (scripts/sandbox.ts populates it)
+.sandbox/

@@ -20,6 +20,7 @@
     "start:mcp": "tsx bin/mcp.ts",
     "start:notifier": "tsx bin/notifier.ts",
     "install:hook": "tsx bin/install-hook.ts",
+    "sandbox": "tsx scripts/sandbox.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "prepare": "husky"
   },

@@ -8,6 +8,14 @@ service, no CI/CD. Pure TypeScript.
 State lives entirely in git tags. Given the set of tags present, the next legal
 action for any task is unambiguous and verifiable from git alone.
 
+## Documentation
+
+- [Getting started](docs/getting-started.md) — mental model, the event loop, and a
+  worked `TASK-1` → `merged` walkthrough (with a rejection).
+- [Adding steps](docs/adding-steps.md) — customize the pipeline with a config file.
+- [FAQ](docs/faq.md) — why git tags, why pre-push, how claim races resolve.
+- [Troubleshooting](docs/troubleshooting.md) — hook, notifier, config, and advance issues.
+
 ## Pipeline
 
 A task advances through a configurable, ordered set of steps. Each transition is a
@@ -26,7 +34,7 @@ TASK-N → in-progress/TASK-N/v1 → code-complete/TASK-N/v1 → test-complete/T
   (`in-progress/TASK-N/v2`); forward progress then re-advances at `v2`.
 
 The steps and their optional per-step required artifacts are config-driven (see
-[Configuring the pipeline](#configuring-the-pipeline)); the six steps above are the
+[Configuring the pipeline](#configuring-the-pipeline)); the five steps above are the
 shipped default.
 
 ## Components
@@ -51,10 +59,17 @@ shipped default.
 
 ## Quickstart
 
+> ⚠️ gitloop pushes pipeline tags (`in-progress/TASK-1/v1`, …) to `GITLOOP_REPO`'s
+> remote. **To try it without touching a real repo, run `pnpm sandbox`** — it builds a
+> throwaway bare remote + worker in a gitignored `.sandbox/` and drives a task to
+> `merged`. The steps below operate on whatever `GITLOOP_REPO` you point at, so use a
+> scratch repo/remote when experimenting, not a repo whose remote you care about.
+
 ```bash
 pnpm install
 
-# 1. Point workers at the shared repo and give each a stable identity.
+# 1. Point workers at the repo to drive (use a scratch repo to experiment) and
+#    give each worker a stable identity.
 export GITLOOP_REPO="$(pwd)"      # repo to derive state from (default: cwd)
 export GITLOOP_REMOTE=origin      # shared remote (default: origin)
 export GITLOOP_WORKER_ID=alice    # this worker's identity (default: user@host)
@@ -104,21 +119,24 @@ fresh clone) is `test/e2e/pipeline.e2e.test.ts`.
 
 The pipeline is a list of ordered steps; each may declare an optional required
 artifact (a `{taskId}`-templated path) that must be committed before that step's tag is
-legal. The default is the six steps above. To customize, construct deps with a config
-built via `loadPipelineConfig`:
+legal. The default is the five steps above. A running server/notifier loads its
+pipeline from (in order): `GITLOOP_CONFIG=<path>` → `<repo>/.gitloop/pipeline.json` →
+the default. For example, `.gitloop/pipeline.json`:
 
-```ts
-loadPipelineConfig({
-  steps: [
-    { name: 'in-progress' },
-    { name: 'code-complete' },
-    { name: 'review-complete', requiredArtifact: 'tasks/{taskId}/review.md' },
-    { name: 'merged' },
-  ],
-});
+```json
+{
+  "steps": [
+    { "name": "in-progress" },
+    { "name": "design", "requiredArtifact": "docs/{taskId}/design.md" },
+    { "name": "code-complete" },
+    { "name": "merged" }
+  ]
+}
 ```
 
-`advance_task` checks a required artifact against `HEAD` (the commit being tagged).
+`advance_task` checks a required artifact against `HEAD` (the commit being tagged). See
+[Adding steps](docs/adding-steps.md) for a full worked example, and `loadPipelineConfig`
+for the library API.
 
 ## Development
 

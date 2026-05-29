@@ -55,10 +55,20 @@ async function main(): Promise<void> {
   log(`installed hook: ${hook.action} → ${hook.path}`);
 
   // The hook reads GITLOOP_NOTIFIER_URL at push time from the git child env.
-  process.env.GITLOOP_NOTIFIER_URL = `http://127.0.0.1:${String(PORT)}`;
-  const notifier = createNotifier({ port: PORT, repoPath: worker, log: () => {} });
-  await notifier.start();
-  log(`notifier listening on ${PORT}, deriving state from ${worker}`);
+  // Prefer a stable port for easier manual exploration, but fall back to an
+  // ephemeral port if it's already taken.
+  let notifier = createNotifier({ port: PORT, repoPath: worker, log: () => {} });
+  let boundPort = PORT;
+  try {
+    ({ port: boundPort } = await notifier.start());
+  } catch (err: unknown) {
+    const code = (err as { code?: unknown }).code;
+    if (code !== 'EADDRINUSE') throw err;
+    notifier = createNotifier({ port: 0, repoPath: worker, log: () => {} });
+    ({ port: boundPort } = await notifier.start());
+  }
+  process.env.GITLOOP_NOTIFIER_URL = `http://127.0.0.1:${String(boundPort)}`;
+  log(`notifier listening on ${String(boundPort)}, deriving state from ${worker}`);
 
   // Register and drive the task with one rejection, via the real MCP tool logic
   // (each push fires the installed hook → notifier).
